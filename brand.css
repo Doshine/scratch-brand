@@ -1,0 +1,9 @@
+/* 蓝鲸品牌覆盖（TurboWarp 编辑器换标）——只动品牌相关，官方布局/积木一律原样。
+   注入方式见 apply-brand.sh：把本文件 + brand.js 拷进 build/ 并在 editor.html 引入。 */
+
+/* 顶部菜单栏：TurboWarp 珊瑚红 → 蓝鲸紫（对齐官方 Scratch/蓝鲸品牌色） */
+[class*="menu-bar_menu-bar"] {
+  background-color: #855CD6 !important;
+}
+
+/* 顶栏“书包/backpack”等次要栏保持默认；此处仅统一主菜单栏配色 */
