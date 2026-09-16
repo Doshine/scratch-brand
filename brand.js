@@ -7,20 +7,52 @@
 (function () {
   'use strict';
 
-  // ① 隐去 TurboWarp 品牌 / 指向外站的按钮（按文本/标题匹配；不动官方 Scratch 功能）
-  var HIDE = ['TurboWarp', '查看作品页面'];
+  // ① 只隐去「纯品牌外链 / 离开编辑器的跳转」，不动官方 Scratch 功能。
+  //    GPL 合规：TurboWarp 的鸣谢 / 源代码 / 许可 / 隐私入口一律不得隐藏（见 THIRD_PARTY_NOTICES.md）。
+  //    规则按「整段文本精确相等 / href 精确匹配」收窄——早先按子串 'TurboWarp' 匹配，会顺带吞掉任何含 TurboWarp 字样的入口。
+  var HIDE_TEXT = [
+    'TurboWarp 反馈', 'TurboWarp Feedback',   // 外链到 TurboWarp 作者的 Scratch 主页留言区
+    '查看作品页面', 'See Project Page'        // 同标签页跳到 TurboWarp 播放器首页（会丢未保存作品）；其页脚的鸣谢/源码入口由下方「ⓘ 关于」补足
+  ];
+  var HIDE_HREF = [/^https?:\/\/scratch\.mit\.edu\/users\/GarboMuffin\b/];
+  var KEEP = /about|credit|licen|source|privacy|github|关于|鸣谢|致谢|许可|源代码|源码|隐私|GPL/i;
   function hideBranding() {
     var bar = document.querySelector('[class*="menu-bar_menu-bar"]');
     if (!bar) return;
     bar.querySelectorAll('a, button, [role="button"], [class*="menu-bar_menu-bar-item"]').forEach(function (el) {
       if (el.getAttribute('data-lj-hidden') || (el.closest && el.closest('#lj-toolbar'))) return;
       var t = (el.textContent || '').trim();
-      var title = (el.getAttribute('title') || el.getAttribute('aria-label') || '');
-      if (HIDE.some(function (h) { return t.indexOf(h) >= 0 || title.indexOf(h) >= 0; })) {
+      var title = (el.getAttribute('title') || el.getAttribute('aria-label') || '').trim();
+      var href = el.getAttribute('href') || '';
+      if (KEEP.test(t + ' ' + title + ' ' + href)) return;   // 许可/鸣谢/源码类入口永不隐藏
+      var hit = HIDE_TEXT.indexOf(t) >= 0 || HIDE_TEXT.indexOf(title) >= 0 ||
+        HIDE_HREF.some(function (re) { return re.test(href); });
+      if (hit) {
         el.style.display = 'none';
         el.setAttribute('data-lj-hidden', '1');
       }
     });
+  }
+
+  // 「ⓘ 关于」面板：声明本编辑器基于 TurboWarp（GPL-3.0），给出鸣谢、上游源码、品牌覆盖源码与许可证全文入口
+  var TW_COMMIT = 'b37d37828f8a540230e20bb2b2ab64bc7f713876';
+  function toggleAbout() {
+    var panel = document.getElementById('lj-about-panel');
+    if (!panel) return;
+    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    var op = document.getElementById('lj-open-panel');
+    if (op) op.style.display = 'none';
+    panel.innerHTML =
+      '<div class="lj-about-title">关于本编辑器</div>' +
+      '<p>本编辑器基于开源项目 <b>TurboWarp</b>（scratch-gui，Scratch 的改进版）构建，按 ' +
+      '<b>GNU 通用公共许可证第 3 版（GPL-3.0）</b>发布；蓝鲸仅在运行时叠加了品牌与作品存取脚本，未修改其源代码。' +
+      'TurboWarp 不属于 Scratch 团队或 Scratch 基金会。</p>' +
+      '<a href="credits.html" target="_blank" rel="noopener">鸣谢（TurboWarp Credits）</a>' +
+      '<a href="https://github.com/TurboWarp/scratch-gui/tree/' + TW_COMMIT + '" target="_blank" rel="noopener">TurboWarp 源代码（对应版本）</a>' +
+      '<a href="https://github.com/Doshine/scratch-brand" target="_blank" rel="noopener">蓝鲸品牌覆盖脚本源代码</a>' +
+      '<a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0 许可证全文</a>' +
+      '<a href="privacy.html" target="_blank" rel="noopener">TurboWarp 隐私政策</a>';
+    panel.style.display = 'block';
   }
 
   // ===== 作品存/取 =====
@@ -249,6 +281,11 @@
         '.lj-open-item:hover{background:#f6f2ff}' +
         '.lj-open-item small{color:#a99fc4;font-size:11px}' +
         '.lj-open-hint{padding:12px 13px;color:#8a83a0;font-size:13px}' +
+        '#lj-about-panel{display:none;position:absolute;top:38px;right:0;width:300px;padding:12px 14px;background:#fff;border:1px solid #e7e1f4;border-radius:10px;box-shadow:0 10px 30px rgba(80,40,140,.22);z-index:99999;color:#575E75;font-size:12px;line-height:1.6}' +
+        '#lj-about-panel .lj-about-title{font-size:14px;font-weight:700;color:#855CD6;margin-bottom:4px}' +
+        '#lj-about-panel p{margin:0 0 8px;font-size:12px;line-height:1.6}' +
+        '#lj-about-panel a{display:block;padding:4px 0;color:#855CD6;text-decoration:none;border-top:1px solid #f3effb}' +
+        '#lj-about-panel a:hover{text-decoration:underline}' +
         // 任务模式:提交按钮(绿)、底部要求浮条、判分结果弹层
         '#lj-toolbar .lj-btn-submit{background:#3aab54;color:#fff;font-size:14px;padding:0 16px}' +
         '#lj-toolbar .lj-btn-submit:hover{background:#329a4b}' +
@@ -281,12 +318,21 @@
     wrap.id = 'lj-toolbar';
     wrap.innerHTML =
       '<span id="lj-save-status"></span>' +
+      '<button id="lj-about-btn" class="lj-btn" type="button" title="关于本编辑器与开源许可">ⓘ 关于</button>' +
       (taskMode
         ? '<button id="lj-submit-btn" class="lj-btn lj-btn-submit" type="button">✅ 提交判分</button>'
         : '<button id="lj-open-btn" class="lj-btn" type="button">📂 打开</button>' +
           '<button id="lj-save-btn" class="lj-btn lj-btn-primary" type="button">💾 保存</button>') +
-      '<div id="lj-open-panel"></div>';
+      '<div id="lj-open-panel"></div>' +
+      '<div id="lj-about-panel"></div>';
     document.body.appendChild(wrap);
+    document.getElementById('lj-about-btn').onclick = toggleAbout;
+    document.addEventListener('click', function (e) {
+      var ap = document.getElementById('lj-about-panel');
+      if (ap && ap.style.display === 'block' && !ap.contains(e.target) && e.target.id !== 'lj-about-btn') {
+        ap.style.display = 'none';
+      }
+    });
 
     if (taskMode) {
       document.getElementById('lj-submit-btn').onclick = doSubmit;
